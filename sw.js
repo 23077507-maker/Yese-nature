@@ -1,22 +1,17 @@
-const CORE_CACHE='natura-core-v2';
-const PHOTO_CACHE='natura-photo-v2';
+const CORE_CACHE='natura-v6-core';
+const PHOTO_CACHE='natura-v6-nature';
 const CORE=['./','./index.html','./icon-180.png','./icon-192.png','./icon-512.png','./manifest.webmanifest'];
-self.addEventListener('install',event=>event.waitUntil(caches.open(CORE_CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
-self.addEventListener('activate',event=>event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>!([CORE_CACHE,PHOTO_CACHE].includes(key))).map(key=>caches.delete(key)))),self.clients.claim()])));
+self.addEventListener('install',e=>e.waitUntil(caches.open(CORE_CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',e=>e.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CORE_CACHE&&k!==PHOTO_CACHE).map(k=>caches.delete(k)))),self.clients.claim()])));
 self.addEventListener('fetch',event=>{
-  const req=event.request;
-  if(req.method!=='GET')return;
-  const url=new URL(req.url);
-  if(url.hostname==='images.unsplash.com'){
-    event.respondWith(caches.open(PHOTO_CACHE).then(async cache=>{
-      const cached=await cache.match(req);
-      if(cached)return cached;
-      try{const response=await fetch(req);if(response.ok||response.type==='opaque')cache.put(req,response.clone()).catch(()=>{});return response}catch(err){return Response.error()}
-    }));return;
-  }
-  if(url.origin!==self.location.origin)return;
-  if(req.mode==='navigate'){
-    event.respondWith(fetch(req).then(response=>{if(response.ok){const copy=response.clone();caches.open(CORE_CACHE).then(cache=>cache.put('./index.html',copy)).catch(()=>{})}return response}).catch(()=>caches.match('./index.html')));return;
-  }
-  event.respondWith(caches.match(req).then(cached=>cached||fetch(req).then(response=>{if(response.ok)caches.open(CORE_CACHE).then(cache=>cache.put(req,response.clone())).catch(()=>{});return response})));
+ const req=event.request;if(req.method!=='GET')return;
+ const u=new URL(req.url);
+ if(u.hostname==='images.unsplash.com'){
+  event.respondWith(caches.open(PHOTO_CACHE).then(async c=>{const cached=await c.match(req);if(cached)return cached;try{const res=await fetch(req);if(res.ok||res.type==='opaque')c.put(req,res.clone()).catch(()=>{});return res;}catch(e){return Response.error();}}));return;
+ }
+ if(u.origin!==self.location.origin)return;
+ if(req.mode==='navigate'){
+  event.respondWith(fetch(req).then(res=>{if(res.ok){const copy=res.clone();caches.open(CORE_CACHE).then(c=>c.put('./index.html',copy)).catch(()=>{});}return res;}).catch(()=>caches.match('./index.html')));return;
+ }
+ event.respondWith(caches.match(req).then(r=>r||fetch(req).then(res=>{if(res.ok)caches.open(CORE_CACHE).then(c=>c.put(req,res.clone())).catch(()=>{});return res;})));
 });
